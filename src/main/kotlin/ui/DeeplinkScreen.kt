@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupProperties
 import kotlinx.coroutines.launch
 import settings.AppSettings
 
@@ -121,9 +122,12 @@ private fun DeeplinkSection(
                     modifier = Modifier.menuAnchor().fillMaxWidth(),
                     singleLine = true,
                 )
-                ExposedDropdownMenu(
+                // Non-focusable so typing keeps going to the text field while suggestions are shown
+                DropdownMenu(
                     expanded = expanded && filtered.isNotEmpty(),
-                    onDismissRequest = { expanded = false }
+                    onDismissRequest = { expanded = false },
+                    properties = PopupProperties(focusable = false),
+                    modifier = Modifier.exposedDropdownSize(),
                 ) {
                     grouped.forEach { (type, entries) ->
                         DropdownMenuItem(
