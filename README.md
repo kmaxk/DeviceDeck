@@ -4,6 +4,16 @@ A desktop GUI for the Android Debug Bridge (adb) — and, on macOS, iOS simulato
 
 DeviceDeck wraps the most common adb and Xcode device workflows — logcat, app management, file browsing, screenshots, screen recording, shell access and device configuration — in a single dark-themed desktop app, so you don't have to remember or retype adb commands.
 
+![Live logcat for an Android emulator](docs/screenshots/android-logs.png)
+
+| Apps | Device |
+|---|---|
+| ![App management](docs/screenshots/android-apps.png) | ![Device info, wireless adb and port forwarding](docs/screenshots/android-device.png) |
+
+On macOS, iOS simulators and iPhones share the same device bar and tabs:
+
+![Live system log of an iOS simulator](docs/screenshots/ios-logs.png)
+
 ## Features
 
 The app is organized into tabs, with a device selector bar (including live battery level) at the top. Multiple connected devices and emulators are supported; all actions target the currently selected device.
