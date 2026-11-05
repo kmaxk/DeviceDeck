@@ -1,5 +1,8 @@
 package device
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 enum class Platform { Android, IOS }
 
 /** A target the app can act on: an adb device, an iOS simulator or an iPhone. */
