@@ -62,6 +62,16 @@ private val HELP_SECTIONS = listOf(
         )
     ),
     HelpSection(
+        "Snapshots", Icons.Filled.CameraAlt,
+        listOf(
+            "Take a snapshot of the device state: apps, settings, props and runtime permissions on Android; apps and device details on iOS",
+            "Compare a \"Before\" snapshot with an \"After\" snapshot or with the current state (Now) to see what an action changed",
+            "The diff lists added, removed and changed entries per section; filter it, or copy it as text for a bug report",
+            "Sections only one snapshot could read are marked not comparable; volatile props and rows are left out",
+            "Snapshots are stored as JSON files in ~/.devicedeck/snapshots",
+        )
+    ),
+    HelpSection(
         "Device", Icons.Filled.PhoneAndroid,
         listOf(
             "View device details: model, manufacturer, Android version, SDK level, build, ABI, resolution, IP, battery",

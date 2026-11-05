@@ -56,6 +56,7 @@ private enum class Screen(
     Capture("Screen"),
     Shell("Shell", platforms = setOf(Platform.Android)),
     Batch("Batch", platforms = setOf(Platform.Android)),
+    Snapshots("Snapshots"),
     Device("Device"),
     Settings("Settings", needsDevice = false),
     Help("Help", needsDevice = false),
@@ -74,6 +75,7 @@ private val DeviceGroups = listOf(
     NavGroup("Files", Icons.Filled.Folder, listOf(Screen.Files)),
     NavGroup("Screen", Icons.Filled.Screenshot, listOf(Screen.Capture)),
     NavGroup("Shell", Icons.Filled.Terminal, listOf(Screen.Shell, Screen.Batch)),
+    NavGroup("Snapshots", Icons.Filled.CameraAlt, listOf(Screen.Snapshots)),
     NavGroup("Device", Icons.Filled.Smartphone, listOf(Screen.Device)),
 )
 
@@ -184,6 +186,7 @@ private fun AndroidScreen(screen: Screen, device: AdbDevice) {
         Screen.Capture -> CaptureScreen(device)
         Screen.Shell -> ShellScreen(device)
         Screen.Batch -> BatchScreen(device)
+        Screen.Snapshots -> SnapshotScreen(device)
         Screen.Device -> DeviceScreen(device)
         Screen.Settings, Screen.Help -> Unit
     }
@@ -197,6 +200,7 @@ private fun IosScreen(screen: Screen, device: IosDevice) {
         Screen.Deeplinks -> DeeplinkScreen(openUrl = { IosService.openUrl(device, it) })
         Screen.Files -> IosFilesScreen(device)
         Screen.Capture -> IosCaptureScreen(device)
+        Screen.Snapshots -> SnapshotScreen(device)
         Screen.Device -> IosDeviceScreen(device)
         Screen.Shell, Screen.Batch, Screen.Settings, Screen.Help -> Unit
     }

@@ -129,6 +129,14 @@ src/main/kotlin/
 │   └── IosDeviceControls.kt # Info, appearance, status bar, location, push, privacy, pasteboard
 ├── process/
 │   └── Exec.kt              # Shared process execution helpers
+├── snapshot/
+│   ├── Snapshot.kt          # Snapshot model (sections of key/value pairs)
+│   ├── SnapshotDiff.kt      # Diff between two snapshots
+│   ├── SnapshotStore.kt     # JSON files in ~/.devicedeck/snapshots
+│   ├── AdbParsers.kt        # Parsers for pm / settings / getprop / dumpsys output
+│   ├── AdbSnapshot.kt       # Android collector
+│   ├── IosMapping.kt        # iOS apps / device details to sections
+│   └── IosSnapshot.kt       # iOS collector
 ├── settings/
 │   └── AppSettings.kt       # Persistent settings (java.util.prefs)
 └── ui/
@@ -142,6 +150,7 @@ src/main/kotlin/
     ├── ShellScreen.kt       # Interactive shell
     ├── BatchScreen.kt       # Line-based automation scripts
     ├── DeviceScreen.kt      # Device info, reboot, wireless, forwards, display
+    ├── SnapshotScreen.kt    # Take snapshots, compare before/after/now
     ├── Ios*Screen.kt        # iOS counterparts: Logs, Apps, Files, Capture, Device
     ├── HelpScreen.kt        # In-app feature overview
     └── SettingsScreen.kt    # ADB path, Xcode / idevicesyslog status
