@@ -15,23 +15,40 @@ fun parseSettings(namespace: String, output: String): Map<String, String> =
         }
         .toMap()
 
-/** Runtime permissions of every package in a full `dumpsys package` dump → `<package>/<permission>` to granted/denied. */
+/**
+ * Runtime permissions of every package in a full `dumpsys package` dump → `<package>/<permission>` to
+ * granted/denied. Only the `Packages:` section counts: `Hidden system packages:` holds the stale original
+ * of updated system apps. Secondary users (work profile, …) get an `@u<id>` suffix; user 0 stays plain.
+ */
 fun parsePermissions(dump: String): Map<String, String> {
     val result = LinkedHashMap<String, String>()
     val packageHeader = Regex("""^\s*Package \[(.+?)]""")
-    val sharedHeader = Regex("""^\s*(?:SharedUser|Shared users:|Hidden system packages:)""")
-    val permission = Regex("""^\s+([\w.]+): granted=(true|false)""")
+    val userHeader = Regex("""^\s+User (\d+):""")
+    val permission = Regex("""^\s+([^\s:]+): granted=(true|false)""")
+    var inPackages = false
     var pkg: String? = null
+    var user = 0
     var inRuntime = false
     for (line in dump.lineSequence()) {
+        // A line without indentation starts a new top-level section
+        if (line.isNotEmpty() && !line[0].isWhitespace()) {
+            inPackages = line.trim() == "Packages:"
+            pkg = null
+            inRuntime = false
+            continue
+        }
+        if (!inPackages) continue
         val header = packageHeader.find(line)
-        if (header != null) { pkg = header.groupValues[1]; inRuntime = false; continue }
-        if (sharedHeader.containsMatchIn(line)) { pkg = null; inRuntime = false; continue }
+        if (header != null) { pkg = header.groupValues[1]; user = 0; inRuntime = false; continue }
+        val userMatch = userHeader.find(line)
+        if (userMatch != null) { user = userMatch.groupValues[1].toInt(); inRuntime = false; continue }
         if (line.trim() == "runtime permissions:") { inRuntime = pkg != null; continue }
         if (inRuntime) {
             val m = permission.find(line)
-            if (m != null) result["$pkg/${m.groupValues[1]}"] = if (m.groupValues[2] == "true") "granted" else "denied"
-            else inRuntime = false
+            if (m != null) {
+                val suffix = if (user == 0) "" else "@u$user"
+                result["$pkg/${m.groupValues[1]}$suffix"] = if (m.groupValues[2] == "true") "granted" else "denied"
+            } else inRuntime = false
         }
     }
     return result

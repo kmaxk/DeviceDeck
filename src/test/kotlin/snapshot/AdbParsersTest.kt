@@ -82,4 +82,48 @@ class AdbParsersTest {
         assertTrue(filtered.isNotEmpty())
         assertFalse("sys.boot_completed" in filtered)
     }
+
+    @Test
+    fun permissions_ignore_hidden_system_packages_section() {
+        val dump = """
+            Packages:
+              Package [com.google.android.youtube] (aaa):
+                User 0: ceDataInode=1 installed=true
+                  runtime permissions:
+                    android.permission.CAMERA: granted=true, flags=[ USER_SET]
+            Hidden system packages:
+              Package [com.google.android.youtube] (bbb):
+                User 0: ceDataInode=1 installed=true
+                  runtime permissions:
+                    android.permission.CAMERA: granted=false, flags=[ ]
+              Package [com.only.hidden] (ccc):
+                User 0: ceDataInode=2 installed=true
+                  runtime permissions:
+                    android.permission.CAMERA: granted=true, flags=[ ]
+            Shared users:
+        """.trimIndent()
+        assertEquals(mapOf("com.google.android.youtube/android.permission.CAMERA" to "granted"), parsePermissions(dump))
+    }
+
+    @Test
+    fun permissions_are_keyed_per_user() {
+        val dump = """
+            Packages:
+              Package [com.example.app] (abc):
+                User 0: ceDataInode=1 installed=true
+                  runtime permissions:
+                    android.permission.CAMERA: granted=true, flags=[ ]
+                User 10: ceDataInode=2 installed=true
+                  runtime permissions:
+                    android.permission.CAMERA: granted=false, flags=[ ]
+            Shared users:
+        """.trimIndent()
+        assertEquals(
+            mapOf(
+                "com.example.app/android.permission.CAMERA" to "granted",
+                "com.example.app/android.permission.CAMERA@u10" to "denied",
+            ),
+            parsePermissions(dump),
+        )
+    }
 }

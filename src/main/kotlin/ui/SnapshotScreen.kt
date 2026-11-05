@@ -27,6 +27,7 @@ import snapshot.SectionResult
 import snapshot.Snapshot
 import snapshot.SnapshotStore
 import snapshot.diff
+import snapshot.runCatchingNonCancellation
 import snapshot.snapshot
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -98,19 +99,28 @@ fun SnapshotScreen(device: Device) = key(device.id) {
     var refresh by remember { mutableIntStateOf(0) }
     var isComparing by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<Map<String, SectionResult>?>(null) }
+    var compareError by remember { mutableStateOf<String?>(null) }
+    val compareGeneration = remember { intArrayOf(0) }
     var query by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) { snapshots = withContext(Dispatchers.IO) { store.list(device.id) } }
 
     LaunchedEffect(before, after, afterNow, refresh) {
         result = null
+        compareError = null
+        val mine = ++compareGeneration[0]
+        isComparing = false
         val b = before ?: return@LaunchedEffect
         val a = if (afterNow) {
             isComparing = true
-            val now = runCatching { capture(device, "now") }.getOrNull()
-            isComparing = false
+            // The adb call isn't interruptible, so a cancelled run wakes up late; only the newest run may clear the spinner
+            val now = try {
+                runCatchingNonCancellation { capture(device, "now") }.getOrNull()
+            } finally {
+                if (compareGeneration[0] == mine) isComparing = false
+            }
             if (now == null || now.sections.isEmpty()) {
-                error = "Could not read the current device state. Is the device still connected?"
+                compareError = "Could not read the current device state. Is the device still connected?"
                 return@LaunchedEffect
             }
             now
@@ -122,7 +132,7 @@ fun SnapshotScreen(device: Device) = key(device.id) {
         scope.launch {
             isTaking = true
             error = null
-            val taken = runCatching { capture(device, label.trim()) }.getOrNull()
+            val taken = runCatchingNonCancellation { capture(device, label.trim()) }.getOrNull()
             if (taken == null || taken.sections.isEmpty()) {
                 error = "Could not read the device state. Is the device still connected?"
             } else {
@@ -231,6 +241,7 @@ fun SnapshotScreen(device: Device) = key(device.id) {
             }
             when {
                 isComparing -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                compareError != null -> Text(compareError!!, color = MaterialTheme.colorScheme.error)
                 shown == null -> EmptyState(
                     Icons.Filled.Compare, "Pick two states to compare",
                     "Choose “Before”, then either “After” on another snapshot or “Now” for the live state.",
