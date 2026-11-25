@@ -83,4 +83,10 @@ class UiDumpParserTest {
     fun dumpResult_succeeds_for_valid_dump() {
         assertEquals(4, dumpResult(dump).getOrThrow().size)
     }
+
+    @Test
+    fun dumpResult_succeeds_when_node_text_contains_error_marker() {
+        val xml = "<hierarchy>" + node("A", text = "ERROR: invalid email") + "</hierarchy>"
+        assertEquals("ERROR: invalid email", dumpResult(xml).getOrThrow().single().text)
+    }
 }
