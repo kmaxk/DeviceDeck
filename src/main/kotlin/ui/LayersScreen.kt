@@ -41,6 +41,8 @@ import layers.Vec2
 import layers.ViewNode
 import layers.layerView
 import layers.paintOrder
+import layers.screenRect
+import layers.visibleNodes
 import layers.pickNode
 import kotlin.math.max
 import kotlin.math.min
@@ -172,14 +174,16 @@ private fun LayerCanvas(
     modifier: Modifier = Modifier,
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
-    val view = remember(nodes, yaw, pitch, zoom, layerGap, canvasSize) {
+    val screen = remember(nodes, image) { screenRect(nodes, image?.width, image?.height) }
+    val view = remember(nodes, screen, yaw, pitch, zoom, layerGap, canvasSize) {
         layerView(
             nodes, yaw, pitch, layerGap,
-            scale = fitScale(nodes, canvasSize) * zoom,
+            scale = fitScale(visibleNodes(nodes, screen), canvasSize) * zoom,
             canvasCenter = Vec2(canvasSize.width / 2f, canvasSize.height / 2f),
+            screen = screen,
         )
     }
-    val order = remember(nodes, yaw, pitch) { paintOrder(nodes, yaw, pitch) }
+    val order = remember(nodes, screen, yaw, pitch) { paintOrder(nodes, yaw, pitch, screen) }
     val currentView by rememberUpdatedState(view)
     val currentNodes by rememberUpdatedState(nodes)
     val rotate by rememberUpdatedState(onRotate)
@@ -231,9 +235,8 @@ private fun LayerCanvas(
     }
 }
 
-/** Scale at zoom 1: the content box fills 80 % of the shorter canvas fit. */
-private fun fitScale(nodes: List<ViewNode>, canvas: IntSize): Float {
-    val drawable = nodes.filter { it.bounds.hasArea }
+/** Scale at zoom 1: the box around the already-filtered [drawable] nodes fills 80 % of the shorter canvas fit. */
+private fun fitScale(drawable: List<ViewNode>, canvas: IntSize): Float {
     if (drawable.isEmpty() || canvas.width == 0 || canvas.height == 0) return 1f
     val w = max(1, drawable.maxOf { it.bounds.right } - drawable.minOf { it.bounds.left })
     val h = max(1, drawable.maxOf { it.bounds.bottom } - drawable.minOf { it.bounds.top })

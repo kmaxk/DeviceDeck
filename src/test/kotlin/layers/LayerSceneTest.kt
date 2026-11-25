@@ -83,6 +83,35 @@ class LayerSceneTest {
         assertNull(pickNode(nodes, view(yaw = 90f), Vec2(500f, 400f)))
     }
 
+    private val offscreen = node(3, 1, 150, 10, 190, 50)
+    private val withOffscreen = nodes + offscreen
+    private val screen = Bounds(0, 0, 100, 200)
+
+    @Test
+    fun paint_order_drops_nodes_outside_the_screen() {
+        assertEquals(listOf(0, 1), paintOrder(withOffscreen, 0f, 0f, screen).map { it.index })
+    }
+
+    @Test
+    fun paint_order_without_screen_does_not_filter() {
+        assertEquals(listOf(0, 1, 3), paintOrder(withOffscreen, 0f, 0f).map { it.index })
+    }
+
+    @Test
+    fun offscreen_node_cannot_be_picked_and_does_not_move_pivot() {
+        val v = layerView(withOffscreen, 0f, 0f, 0f, 1f, Vec2(500f, 400f), screen)
+        assertNull(pickNode(withOffscreen, v, v.planeFor(1).map(170f, 30f)))
+        assertEquals(1, pickNode(withOffscreen, v, v.planeFor(1).map(30f, 30f)))
+        assertClose(50f, v.pivot.x); assertClose(100f, v.pivot.y)
+    }
+
+    @Test
+    fun screen_rect_prefers_screenshot_then_root_bounds() {
+        assertEquals(Bounds(0, 0, 1080, 2400), screenRect(withOffscreen, 1080, 2400))
+        assertEquals(Bounds(0, 0, 100, 200), screenRect(withOffscreen, null, null))
+        assertNull(screenRect(emptyList(), null, null))
+    }
+
     @Test
     fun empty_scene_has_no_pick() {
         val v = layerView(emptyList(), 0f, 0f, 10f, 1f, Vec2(0f, 0f))
