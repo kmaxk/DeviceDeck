@@ -60,4 +60,27 @@ class UiDumpParserTest {
         assertFalse(Bounds(5, 5, 5, 9).hasArea)
         assertNull(parseUiDump("").firstOrNull())
     }
+
+    @Test
+    fun dumpResult_fails_for_blank_output() {
+        assertTrue(dumpResult("").isFailure)
+        assertTrue(dumpResult("  \n").isFailure)
+    }
+
+    @Test
+    fun dumpResult_fails_with_error_text() {
+        val r = dumpResult("ERROR: could not get idle state.")
+        assertTrue(r.isFailure)
+        assertTrue(r.exceptionOrNull()!!.message!!.contains("could not get idle state"))
+    }
+
+    @Test
+    fun dumpResult_fails_when_nothing_parsed() {
+        assertTrue(dumpResult("garbage without hierarchy").isFailure)
+    }
+
+    @Test
+    fun dumpResult_succeeds_for_valid_dump() {
+        assertEquals(4, dumpResult(dump).getOrThrow().size)
+    }
 }

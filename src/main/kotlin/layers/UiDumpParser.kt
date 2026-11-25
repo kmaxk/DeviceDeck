@@ -56,3 +56,16 @@ private fun collect(parent: Element, parentIndex: Int?, depth: Int, out: Mutable
         collect(el, index, depth + 1, out)
     }
 }
+
+/** Turns raw `uiautomator dump` output into a result with a readable failure message. */
+fun dumpResult(output: String): Result<List<ViewNode>> {
+    if (output.isBlank()) return Result.failure(IllegalStateException("Empty UI dump"))
+    val errorIdx = output.indexOf("ERROR:")
+    if (errorIdx >= 0) {
+        val msg = output.substring(errorIdx).lineSequence().first().trim()
+        return Result.failure(IllegalStateException(msg))
+    }
+    val nodes = parseUiDump(output)
+    return if (nodes.isEmpty()) Result.failure(IllegalStateException("UI dump contained no views"))
+    else Result.success(nodes)
+}

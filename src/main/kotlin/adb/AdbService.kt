@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import layers.ViewNode
+import layers.dumpResult
 import process.Exec
 
 data class RunningApp(val pid: String, val packageName: String)
@@ -441,6 +443,15 @@ object AdbService {
             if (bytes.size > 8 && bytes[1] == 'P'.code.toByte() && bytes[2] == 'N'.code.toByte())
                 Result.success(bytes)
             else Result.failure(Exception(bytes.toString(Charsets.UTF_8).trim().take(200).ifEmpty { "Empty screenshot" }))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun uiDump(serial: String): Result<List<ViewNode>> = withContext(Dispatchers.IO) {
+        try {
+            val bytes = runCommandBytes(listOf(adbPath, "-s", serial, "exec-out", "uiautomator", "dump", "/dev/tty"))
+            dumpResult(bytes.toString(Charsets.UTF_8))
         } catch (e: Exception) {
             Result.failure(e)
         }
