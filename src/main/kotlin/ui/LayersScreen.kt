@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import layers.Bounds
 import layers.PlaneMap
 import layers.Vec2
 import layers.ViewNode
@@ -74,7 +75,8 @@ fun LayersScreen(device: AdbDevice) {
     var zoom by remember { mutableStateOf(1f) }
     var layerGap by remember { mutableStateOf(DEFAULT_GAP) }
     var selected by remember(device.serial) { mutableStateOf<Int?>(null) }
-    val overlaps = remember(nodes) { findOverlaps(nodes) }
+    val screen = remember(nodes, screenshot) { screenRect(nodes, screenshot?.width, screenshot?.height) }
+    val overlaps = remember(nodes, screen) { findOverlaps(nodes, screen) }
     val overlapping = remember(overlaps) { overlaps.flatMap { listOf(it.first, it.second) }.toSet() }
 
     Row(Modifier.fillMaxSize()) {
@@ -93,21 +95,27 @@ fun LayersScreen(device: AdbDevice) {
                         loading = true
                         feedback = null
                         scope.launch {
-                            val (dump, shot) = coroutineScope {
-                                val d = async { AdbService.uiDump(device.serial) }
-                                val s = async { AdbService.screenshot(device.serial) }
-                                d.await() to s.await()
+                            try {
+                                val (dump, shot) = coroutineScope {
+                                    val d = async { AdbService.uiDump(device.serial) }
+                                    val s = async { AdbService.screenshot(device.serial) }
+                                    d.await() to s.await()
+                                }
+                                // Hierarchy and screenshot are one unit: on dump failure keep the old pair untouched.
+                                feedback = dump.fold(
+                                    onSuccess = { dumped ->
+                                        val image = shot.getOrNull()?.let { decodeImage(it) }
+                                        nodes = dumped
+                                        selected = null
+                                        screenshot = image
+                                        "${dumped.size} views captured" +
+                                            if (image == null) " (screenshot failed – untextured)" else ""
+                                    },
+                                    onFailure = { it.message ?: "Capture failed" },
+                                )
+                            } finally {
+                                loading = false
                             }
-                            dump.onSuccess {
-                                nodes = it
-                                selected = null
-                            }
-                            screenshot = shot.getOrNull()?.let { decodeImage(it) } ?: screenshot
-                            feedback = dump.fold(
-                                onSuccess = { "${it.size} views captured" },
-                                onFailure = { it.message ?: "Capture failed" },
-                            )
-                            loading = false
                         }
                     },
                 ) { Text(if (loading) "Capturing…" else "Capture") }
@@ -147,6 +155,7 @@ fun LayersScreen(device: AdbDevice) {
                 LayerCanvas(
                     nodes = nodes,
                     image = screenshot,
+                    screen = screen,
                     yaw = yaw,
                     pitch = pitch,
                     zoom = zoom,
@@ -174,6 +183,7 @@ private fun wrapDegrees(deg: Float): Float = ((deg + 180f) % 360f + 360f) % 360f
 private fun LayerCanvas(
     nodes: List<ViewNode>,
     image: ImageBitmap?,
+    screen: Bounds?,
     yaw: Float,
     pitch: Float,
     zoom: Float,
@@ -186,7 +196,6 @@ private fun LayerCanvas(
     modifier: Modifier = Modifier,
 ) {
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
-    val screen = remember(nodes, image) { screenRect(nodes, image?.width, image?.height) }
     val view = remember(nodes, screen, yaw, pitch, zoom, layerGap, canvasSize) {
         layerView(
             nodes, yaw, pitch, layerGap,
@@ -233,23 +242,25 @@ private fun LayerCanvas(
                 }
             }
     ) {
+        // Pass 1: textures and plain outlines, back to front.
         for (node in order) {
             val plane = view.planeFor(node.depth)
-            val isSelected = node.index == selected
-            val isOverlap = node.index in overlapping
             val shape = quad(plane, node)
             if (image == null || !drawTexture(image, node, plane)) drawPath(shape, untextured)
-            if (isSelected) drawPath(shape, highlight.copy(alpha = 0.25f))
-            if (isOverlap) drawPath(shape, overlapColor.copy(alpha = 0.12f))
-            drawPath(
-                shape,
-                when {
-                    isSelected -> highlight
-                    isOverlap -> overlapColor
-                    else -> outline
-                },
-                style = Stroke(width = if (isSelected) 2.5f else if (isOverlap) 1.5f else 1f),
-            )
+            drawPath(shape, outline, style = Stroke(width = 1f))
+        }
+        // Pass 2: highlights on top of everything, so deeper opaque textures cannot hide them.
+        // Overlaps first (red), the selection last (primary, thicker) so it stays distinguishable.
+        for (node in order) {
+            if (node.index !in overlapping || node.index == selected) continue
+            val shape = quad(view.planeFor(node.depth), node)
+            drawPath(shape, overlapColor.copy(alpha = 0.12f))
+            drawPath(shape, overlapColor, style = Stroke(width = 1.5f))
+        }
+        order.firstOrNull { it.index == selected }?.let { node ->
+            val shape = quad(view.planeFor(node.depth), node)
+            drawPath(shape, highlight.copy(alpha = 0.25f))
+            drawPath(shape, highlight, style = Stroke(width = 2.5f))
         }
     }
 }
@@ -335,7 +346,7 @@ private fun OverlapList(nodes: List<ViewNode>, overlaps: List<Pair<Int, Int>>, o
     val byIndex = remember(nodes) { nodes.associateBy { it.index } }
     SectionCard("Overlaps (${overlaps.size})", Icons.Filled.Warning) {
         Text(
-            "Geometrisch: Bounds schneiden sich. Kein Z-Order/Transparenz im Dump – gestapelte Views können Fehlalarme sein.",
+            "Overlaps are geometric only (the dump has no z-order or transparency), so stacked views can be false alarms.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -62,4 +62,45 @@ class OverlapsTest {
         assertTrue(result.all { it.first < it.second })
         assertEquals(result.sortedWith(compareBy({ it.first }, { it.second })), result)
     }
+
+    private val screen = b(0, 0, 100, 100)
+
+    @Test
+    fun offscreen_sibling_produces_no_pair() {
+        val nodes = listOf(
+            node(0, null, b(0, 0, 100, 100)),
+            node(1, 0, b(10, 10, 50, 50), depth = 1),
+            node(2, 0, b(150, 0, 250, 100), depth = 1),
+            node(3, 0, b(200, 50, 300, 150), depth = 1),
+        )
+        assertEquals(listOf(2 to 3), findOverlaps(nodes))
+        assertEquals(emptyList(), findOverlaps(nodes, screen))
+    }
+
+    @Test
+    fun filtered_out_middle_ancestor_keeps_grandparent_and_grandchild_apart() {
+        val zeroAreaMiddle = listOf(
+            node(0, null, b(0, 0, 100, 100)),
+            node(1, 0, b(0, 0, 0, 0), depth = 1),
+            node(2, 1, b(10, 10, 50, 50), depth = 2),
+        )
+        assertEquals(emptyList(), findOverlaps(zeroAreaMiddle, screen))
+        val offscreenMiddle = listOf(
+            node(0, null, b(0, 0, 100, 100)),
+            node(1, 0, b(-300, 0, -200, 100), depth = 1),
+            node(2, 1, b(10, 10, 50, 50), depth = 2),
+        )
+        assertEquals(emptyList(), findOverlaps(offscreenMiddle, screen))
+    }
+
+    @Test
+    fun null_screen_behaves_as_before() {
+        val nodes = listOf(
+            node(0, null, b(0, 0, 100, 100)),
+            node(1, null, b(150, 0, 250, 100)),
+            node(2, null, b(200, 50, 300, 150)),
+        )
+        assertEquals(findOverlaps(nodes), findOverlaps(nodes, null))
+        assertEquals(listOf(1 to 2), findOverlaps(nodes, null))
+    }
 }
