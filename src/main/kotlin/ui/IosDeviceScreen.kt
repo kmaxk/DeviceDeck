@@ -37,7 +37,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import java.awt.FileDialog
-import java.awt.Frame
 
 /** Runs a device call and reports its message in the feedback card. */
 private typealias RunAction = (suspend () -> Result<String>) -> Unit
@@ -571,9 +570,9 @@ private fun MediaSection(device: IosDevice, isBusy: Boolean, run: RunAction) {
             onClick = {
                 scope.launch {
                     val files = withContext(Dispatchers.Swing) {
-                        val dialog = FileDialog(null as Frame?, "Add media…", FileDialog.LOAD)
+                        val dialog = fileDialog("Add media…", FileDialog.LOAD)
                         dialog.isMultipleMode = true
-                        dialog.isVisible = true
+                        dialog.showAndRestoreFocus()
                         dialog.files.toList()
                     }
                     if (files.isNotEmpty()) run { IosService.addMedia(device, files) }

@@ -31,7 +31,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import java.awt.FileDialog
-import java.awt.Frame
 import java.io.File
 import java.net.URI
 
@@ -94,10 +93,10 @@ fun IosAppsScreen(device: IosDevice) {
                 val previous = System.getProperty(key)
                 System.setProperty(key, "true")
                 try {
-                    val dialog = FileDialog(null as Frame?, "Install .app / .ipa…", FileDialog.LOAD)
+                    val dialog = fileDialog("Install .app / .ipa…", FileDialog.LOAD)
                     dialog.isMultipleMode = true
                     dialog.setFilenameFilter { dir, name -> isInstallable(File(dir, name)) }
-                    dialog.isVisible = true
+                    dialog.showAndRestoreFocus()
                     dialog.files.toList()
                 } finally {
                     if (previous == null) System.clearProperty(key) else System.setProperty(key, previous)

@@ -27,7 +27,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import java.awt.FileDialog
-import java.awt.Frame
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.io.File
@@ -372,9 +371,9 @@ fun LogExportButton(state: LogViewState, defaultFileName: String) {
     LogToolbarButton(Icons.Filled.Download, "Export logs") {
         scope.launch {
             val target = withContext(Dispatchers.Swing) {
-                val dialog = FileDialog(null as Frame?, "Export logs…", FileDialog.SAVE)
+                val dialog = fileDialog("Export logs…", FileDialog.SAVE)
                 dialog.file = defaultFileName
-                dialog.isVisible = true
+                dialog.showAndRestoreFocus()
                 val dir = dialog.directory
                 val name = dialog.file
                 if (dir != null && name != null) File(dir, name) else null

@@ -1,4 +1,5 @@
 import adb.AdbService
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -7,6 +8,7 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import settings.AppSettings
 import ui.App
+import ui.AppWindow
 
 fun main() {
     if (System.getProperty("os.name").contains("Mac", ignoreCase = true)) {
@@ -25,6 +27,7 @@ fun main() {
                 window.rootPane.putClientProperty("apple.awt.transparentTitleBar", true)
                 window.background = java.awt.Color(0x1B, 0x1C, 0x20) // Bench.Graphite
             }
+            SideEffect { AppWindow.frame = window }
             App()
         }
     }

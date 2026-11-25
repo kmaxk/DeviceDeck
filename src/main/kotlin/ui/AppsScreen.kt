@@ -23,7 +23,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import java.awt.FileDialog
-import java.awt.Frame
 import java.io.File
 import java.net.URI
 
@@ -70,10 +69,10 @@ fun AppsScreen(device: AdbDevice) {
     fun pickAndInstallApk() {
         scope.launch {
             val paths = withContext(Dispatchers.Swing) {
-                val dialog = FileDialog(null as Frame?, "Install APK…", FileDialog.LOAD)
+                val dialog = fileDialog("Install APK…", FileDialog.LOAD)
                 dialog.isMultipleMode = true
                 dialog.setFilenameFilter { _, name -> name.endsWith(".apk", ignoreCase = true) }
-                dialog.isVisible = true
+                dialog.showAndRestoreFocus()
                 dialog.files.map { it.absolutePath }
             }
             if (paths.isNotEmpty()) installApks(paths)

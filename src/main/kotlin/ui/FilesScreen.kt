@@ -23,7 +23,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import java.awt.FileDialog
-import java.awt.Frame
 import java.io.File
 
 private const val HOME_PATH = "/sdcard"
@@ -64,9 +63,9 @@ fun FilesScreen(device: AdbDevice) {
     fun download(file: RemoteFile) {
         scope.launch {
             val target = withContext(Dispatchers.Swing) {
-                val dialog = FileDialog(null as Frame?, "Save to…", FileDialog.SAVE)
+                val dialog = fileDialog("Save to…", FileDialog.SAVE)
                 dialog.file = file.name
-                dialog.isVisible = true
+                dialog.showAndRestoreFocus()
                 val dir = dialog.directory
                 val name = dialog.file
                 if (dir != null && name != null) File(dir, name).absolutePath else null
@@ -85,9 +84,9 @@ fun FilesScreen(device: AdbDevice) {
     fun upload() {
         scope.launch {
             val sources = withContext(Dispatchers.Swing) {
-                val dialog = FileDialog(null as Frame?, "Upload to $currentPath…", FileDialog.LOAD)
+                val dialog = fileDialog("Upload to $currentPath…", FileDialog.LOAD)
                 dialog.isMultipleMode = true
-                dialog.isVisible = true
+                dialog.showAndRestoreFocus()
                 dialog.files.toList()
             }
             if (sources.isEmpty()) return@launch

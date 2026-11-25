@@ -36,7 +36,6 @@ import kotlinx.coroutines.swing.Swing
 import kotlinx.coroutines.withContext
 import org.jetbrains.skia.Image as SkiaImage
 import java.awt.FileDialog
-import java.awt.Frame
 import java.io.File
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -481,9 +480,9 @@ fun decodeImage(bytes: ByteArray): ImageBitmap? =
 
 /** Native save dialog; null when the user cancels. */
 suspend fun chooseSaveFile(title: String, fileName: String): File? = withContext(Dispatchers.Swing) {
-    val dialog = FileDialog(null as Frame?, title, FileDialog.SAVE)
+    val dialog = fileDialog(title, FileDialog.SAVE)
     dialog.file = fileName
-    dialog.isVisible = true
+    dialog.showAndRestoreFocus()
     val dir = dialog.directory
     val name = dialog.file
     if (dir != null && name != null) File(dir, name) else null

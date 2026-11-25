@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "de.devicedeck"
-version = "1.4.0"
+version = "1.4.1"
 
 repositories {
     mavenCentral()
@@ -46,7 +46,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Pkg, TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.Msi, TargetFormat.Exe)
             packageName = "DeviceDeck"
-            packageVersion = "1.4.0"
+            packageVersion = "1.4.1"
             description = "ADB device manager for Android developers"
             copyright = "© 2026 DeviceDeck"
             vendor = "DeviceDeck"
