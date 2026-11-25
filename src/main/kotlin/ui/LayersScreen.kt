@@ -6,13 +6,17 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Rotate90DegreesCcw
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -39,7 +43,9 @@ import kotlinx.coroutines.launch
 import layers.PlaneMap
 import layers.Vec2
 import layers.ViewNode
+import layers.findOverlaps
 import layers.layerView
+import layers.overlapLabel
 import layers.paintOrder
 import layers.screenRect
 import layers.visibleNodes
@@ -68,6 +74,8 @@ fun LayersScreen(device: AdbDevice) {
     var zoom by remember { mutableStateOf(1f) }
     var layerGap by remember { mutableStateOf(DEFAULT_GAP) }
     var selected by remember(device.serial) { mutableStateOf<Int?>(null) }
+    val overlaps = remember(nodes) { findOverlaps(nodes) }
+    val overlapping = remember(overlaps) { overlaps.flatMap { listOf(it.first, it.second) }.toSet() }
 
     Row(Modifier.fillMaxSize()) {
         Column(
@@ -123,6 +131,8 @@ fun LayersScreen(device: AdbDevice) {
             }
 
             NodeDetails(selected?.let { nodes.getOrNull(it) })
+
+            OverlapList(nodes, overlaps, onSelect = { selected = it })
         }
 
         Box(Modifier.width(1.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outline))
@@ -142,6 +152,7 @@ fun LayersScreen(device: AdbDevice) {
                     zoom = zoom,
                     layerGap = layerGap,
                     selected = selected,
+                    overlapping = overlapping,
                     onRotate = { d ->
                         yaw = wrapDegrees(yaw + d.x * DEGREES_PER_PX)
                         pitch = (pitch - d.y * DEGREES_PER_PX).coerceIn(-89f, 89f)
@@ -168,6 +179,7 @@ private fun LayerCanvas(
     zoom: Float,
     layerGap: Float,
     selected: Int?,
+    overlapping: Set<Int>,
     onRotate: (Offset) -> Unit,
     onZoom: (Float) -> Unit,
     onSelect: (Int?) -> Unit,
@@ -192,6 +204,7 @@ private fun LayerCanvas(
 
     val outline = Bench.Slate.copy(alpha = 0.6f)
     val highlight = MaterialTheme.colorScheme.primary
+    val overlapColor = MaterialTheme.colorScheme.error
     val untextured = Bench.Raised.copy(alpha = 0.5f)
 
     Canvas(
@@ -223,13 +236,19 @@ private fun LayerCanvas(
         for (node in order) {
             val plane = view.planeFor(node.depth)
             val isSelected = node.index == selected
+            val isOverlap = node.index in overlapping
             val shape = quad(plane, node)
             if (image == null || !drawTexture(image, node, plane)) drawPath(shape, untextured)
             if (isSelected) drawPath(shape, highlight.copy(alpha = 0.25f))
+            if (isOverlap) drawPath(shape, overlapColor.copy(alpha = 0.12f))
             drawPath(
                 shape,
-                if (isSelected) highlight else outline,
-                style = Stroke(width = if (isSelected) 2.5f else 1f),
+                when {
+                    isSelected -> highlight
+                    isOverlap -> overlapColor
+                    else -> outline
+                },
+                style = Stroke(width = if (isSelected) 2.5f else if (isOverlap) 1.5f else 1f),
             )
         }
     }
@@ -305,6 +324,36 @@ private fun NodeDetails(node: ViewNode?) {
                 DetailRow("Content desc", node.contentDesc)
                 DetailRow("Bounds", "[${b.left},${b.top}][${b.right},${b.bottom}]  ${b.width}×${b.height}")
                 DetailRow("Depth", node.depth.toString())
+            }
+        }
+    }
+}
+
+/** Side card listing overlapping pairs; clicking an entry selects the pair's first node. */
+@Composable
+private fun OverlapList(nodes: List<ViewNode>, overlaps: List<Pair<Int, Int>>, onSelect: (Int) -> Unit) {
+    val byIndex = remember(nodes) { nodes.associateBy { it.index } }
+    SectionCard("Overlaps (${overlaps.size})", Icons.Filled.Warning) {
+        Text(
+            "Geometrisch: Bounds schneiden sich. Kein Z-Order/Transparenz im Dump – gestapelte Views können Fehlalarme sein.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (overlaps.isEmpty()) {
+            Text("No overlaps found.", style = MaterialTheme.typography.bodySmall)
+        } else {
+            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 240.dp)) {
+                items(overlaps) { (a, b) ->
+                    val na = byIndex[a]
+                    val nb = byIndex[b]
+                    if (na != null && nb != null) {
+                        Text(
+                            overlapLabel(na, nb),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.fillMaxWidth().clickable { onSelect(a) }.padding(vertical = 4.dp),
+                        )
+                    }
+                }
             }
         }
     }

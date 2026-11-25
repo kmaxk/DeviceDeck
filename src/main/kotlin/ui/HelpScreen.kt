@@ -56,6 +56,17 @@ private val HELP_SECTIONS = listOf(
         )
     ),
     HelpSection(
+        "Layers", Icons.Filled.Layers,
+        listOf(
+            "Capture the view hierarchy (uiautomator dump) plus a screenshot and explore it as an exploded 3D view",
+            "Drag to rotate, scroll to zoom, and use the layer gap slider to spread the depth levels apart",
+            "Click a view to see its class, resource ID, text, content description, bounds and depth",
+            "Overlapping views are outlined in red and listed under Overlaps; click an entry to select it",
+            "Overlaps are geometric only (the dump has no z-order or transparency), so stacked views can be false alarms",
+            "Android only",
+        )
+    ),
+    HelpSection(
         "Shell", Icons.Filled.Terminal,
         listOf(
             "Run arbitrary adb shell commands and view the output",

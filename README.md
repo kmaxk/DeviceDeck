@@ -41,6 +41,10 @@ The app is organized into tabs, with a device selector bar (including live batte
 - Launch [scrcpy](https://github.com/Genymobile/scrcpy) for live screen mirroring (if installed)
 - Send text input and key events to the device
 
+### Layers
+- Capture the view hierarchy (`uiautomator dump`) with a screenshot and explore it as a 3D exploded view: drag to rotate, scroll to zoom, click a view for details
+- Overlapping views are outlined in red and listed (geometric check, Android only)
+
 ### Shell
 - Run arbitrary `adb shell` commands with output display
 
@@ -127,6 +131,13 @@ src/main/kotlin/
 │   ├── IosFiles.kt          # App data container browsing and copy
 │   ├── IosCapture.kt        # Screenshots and screen recording
 │   └── IosDeviceControls.kt # Info, appearance, status bar, location, push, privacy, pasteboard
+├── layers/
+│   ├── ViewNode.kt          # View hierarchy node and bounds
+│   ├── UiDumpParser.kt      # Parser for uiautomator dump XML
+│   ├── Overlaps.kt          # Geometric overlap detection between nodes
+│   ├── NodeLabel.kt         # Class#id labels for nodes and overlap pairs
+│   ├── Projection.kt        # Orthographic projection of depth planes
+│   └── LayerScene.kt        # Scene helpers: paint order, visibility, picking
 ├── process/
 │   └── Exec.kt              # Shared process execution helpers
 ├── snapshot/
@@ -151,6 +162,8 @@ src/main/kotlin/
     ├── BatchScreen.kt       # Line-based automation scripts
     ├── DeviceScreen.kt      # Device info, reboot, wireless, forwards, display
     ├── SnapshotScreen.kt    # Take snapshots, compare before/after/now
+    ├── LayersScreen.kt      # 3D layer view of the UI hierarchy, overlap list
+    ├── FileDialogs.kt       # Native file open/save dialogs
     ├── Ios*Screen.kt        # iOS counterparts: Logs, Apps, Files, Capture, Device
     ├── HelpScreen.kt        # In-app feature overview
     └── SettingsScreen.kt    # ADB path, Xcode / idevicesyslog status
